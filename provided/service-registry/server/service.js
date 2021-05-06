@@ -3,13 +3,14 @@ const express = require("express");
 const service = express();
 const ServiceRegistry = require("./lib/ServiceRegistry");
 
-module.exports = (config) => {
+const services = (config) => {
     const log = config.log();
 
     const serviceRegistry = new ServiceRegistry(log);
 
     // Add a request logging middleware in development mode
     if (service.get("env") === "development") {
+        console.log("HIs");
         service.use((req, res, next) => {
             log.debug(`${req.method}: ${req.url}`);
             return next();
@@ -17,7 +18,7 @@ module.exports = (config) => {
     }
 
     service.put(
-        "/register/:servicename?:serviceversion/:serviceport",
+        "/register/:servicename/:serviceversion/:serviceport",
         (req, res) => {
             const { servicename, serviceversion, serviceport } = req.params;
 
@@ -37,7 +38,7 @@ module.exports = (config) => {
     );
 
     service.delete(
-        "/register/:servicename?:serviceversion/:serviceport",
+        "/register/:servicename/:serviceversion/:serviceport",
         (req, res) => {
             const { servicename, serviceversion, serviceport } = req.params;
 
@@ -56,12 +57,22 @@ module.exports = (config) => {
         }
     );
 
-    service.get("/register/:servicename?:serviceversion", (req, res, next) => {
-        return next("Not implement");
+    service.get("/find/:servicename/:serviceversion", (req, res) => {
+        console.log("his");
+        const { servicename, serviceversion } = req.params;
+
+        const svc = serviceRegistry.get(servicename, serviceversion);
+
+        console.log(svc);
+
+        if (!svc) return res.status(404).json({ result: "Service not found" });
+
+        return res.json(svc);
     });
 
     // eslint-disable-next-line no-unused-vars
     service.use((error, req, res, next) => {
+        console.log("?what happepepoasdjllkasdjkj??");
         res.status(error.status || 500);
         // Log out the error to the console
         log.error(error);
@@ -73,3 +84,5 @@ module.exports = (config) => {
     });
     return service;
 };
+
+module.exports = services;
