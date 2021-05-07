@@ -1,9 +1,28 @@
+const axios = require("axios");
+
 class CircuitBreaker {
     constructor() {
         this.states = {};
         this.failureThreshold = 5;
         this.cooldownPeriod = 10;
         this.requestTimeout = 1;
+    }
+
+    async callService(requestOptions) {
+        const endPoint = `${requestOptions.method}:${requestOptions.url}`;
+
+        if (!this.canRequest(endPoint)) return false;
+
+        requestOptions.timeout = this.requestTimeout * 1000;
+
+        try {
+            const response = await axios(requestOptions);
+
+            this.onSuccess(endPoint);
+            return response.data;
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     onSuccess(endPoint) {
@@ -21,6 +40,7 @@ class CircuitBreaker {
     }
 
     canRequest(endPoint) {
+        if (!this.states[endPoint]) this.initState(endPoint);
         const state = this.state[endPoint];
 
         if (state.circuit === "CLOSED") return true;
@@ -29,7 +49,9 @@ class CircuitBreaker {
 
         if (state.nextTry <= now) {
             state.circuit = "HALF";
+            return true;
         }
+        return false;
     }
 
     initState(endPoint) {
@@ -41,3 +63,5 @@ class CircuitBreaker {
         };
     }
 }
+
+module.exports = CircuitBreaker;
